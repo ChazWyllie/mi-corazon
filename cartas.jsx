@@ -258,7 +258,7 @@ function CartasScene() {
       position: 'absolute', inset: 0,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center',
-      padding: 'calc(env(safe-area-inset-top, 0px) + 72px) 16px calc(env(safe-area-inset-bottom, 0px) + 78px)',
+      padding: 'calc(env(safe-area-inset-top, 0px) + 92px) 16px calc(env(safe-area-inset-bottom, 0px) + 4px)',
       animation: 'sceneFadeIn 0.8s ease-out',
       overflow: 'hidden',
     }}>
