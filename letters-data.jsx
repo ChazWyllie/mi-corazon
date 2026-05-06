@@ -109,6 +109,19 @@ const LETTERS = [
     ],
   },
   {
+    id: 'may-2026',
+    date: 'May 4, 2026',
+    monthLabel: 'Mayo',
+    title: 'Una sola alma',
+    salutation: 'Mi amor,',
+    body: [
+      "We've been together for 7 months and life just keeps on getting better and better as the days go on. Words aren't enough to describe how I feel about you, but I just know that you are the woman that I want to spend the rest of my life with.",
+      "Life is changing as the days go by, I'm graduating soon and starting my dream career since childhood, you're taking classes to pursue your goals, and we're starting to function as one soul as we're sharing every part of ourselves together. I feel nothing but love and appreciation that it is you whom I'm sharing my life with, from the cafe to the small drives. It's truly never a dull moment with you by my side.",
+      "Ever since you've came into my life, it has changed for the better. Never would I have ever thought that I'd be where I am in such a short time. It is true when they say it only takes a year for life to completely change. I'm forever grateful to have met you, and I wouldn't change it for anything.",
+      "I love you with all of my heart, and I hope to live a long blissful life with you by my side mi amor. God has brought us together and I'll forever be thankful for that.",
+    ],
+  },
+  {
     id: 'bonus',
     date: 'A special place',
     monthLabel: 'Bonus',
@@ -125,7 +138,6 @@ const LETTERS = [
 // Upcoming months (placeholders) — auto-generated from current date forward.
 // The 4th of each upcoming month + romantic holidays.
 const UPCOMING = [
-  { id: 'may-2026',     date: 'May 4, 2026',        monthLabel: 'Mayo',         tease: 'soon, mi amor' },
   { id: 'jun-2026',     date: 'June 4, 2026',       monthLabel: 'Junio',        tease: 'medio año más' },
   { id: 'jul-2026',     date: 'July 4, 2026',       monthLabel: 'Julio',        tease: 'soon, mi vida' },
   { id: 'aug-2026',     date: 'August 4, 2026',     monthLabel: 'Agosto',       tease: 'pronto, mi amor' },
