@@ -7,6 +7,12 @@ const LOVE_MESSAGES_ES = [
   'eres mía', 'siempre', 'para ti', 'mi sol', 'mi cielo',
   'mi alma', 'mi reina', 'mi luz', 'mi aire', 'mi hogar',
   'te adoro', 'te extraño', 'eres todo', 'mi bendición', 'mi tesoro',
+  'mi mundo', 'mi paz', 'mi calma', 'mi fuego', 'mi café',
+  'mi razón', 'mi destino', 'mi milagro', 'mi locura', 'mi suerte',
+  'mi compañera', 'mi novia', 'mi futuro', 'mi promesa', 'mi canción',
+  'eres preciosa', 'eres hermosa', 'mi musa', 'mi poesía', 'mi historia',
+  'eres tú', 'solo tú', 'siempre tú', 'tuyo soy', 'tu hombre',
+  'mi cumpleañera', 'mi pickleball', 'mi cariño', 'mi mami', 'mi bebé',
 ];
 
 const GARDEN_THEMES = {
@@ -163,6 +169,8 @@ function HeartGardenScene() {
   const [flowers, setFlowers] = React.useState([]);
   const [count, setCount] = React.useState(0);
   const [milestone, setMilestone] = React.useState(null);
+  const [surprise, setSurprise] = React.useState(null); // { id, kind: 'star'|'butterfly'|'burst' }
+  const lastMsgIdx = React.useRef(-1);
 
   // Soft starlight halo — small twinkling sparkles arranged on a heart silhouette
   // around the photo card. Purely decorative; taps go through to the surface.
@@ -201,6 +209,7 @@ function HeartGardenScene() {
   }, []);
 
   // Tap anywhere on the garden surface to drop a te amo.
+  const MILESTONES = new Set([5, 10, 15, 25, 35, 50, 75, 100, 150, 200, 365]);
   const surfaceTap = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const cx = (e.clientX ?? e.changedTouches?.[0]?.clientX ?? 0) - rect.left;
@@ -209,11 +218,27 @@ function HeartGardenScene() {
     setBursts(b => [...b, { id, x: cx, y: cy }]);
     const newCount = count + 1;
     setCount(newCount);
-    const msg = LOVE_MESSAGES_ES[Math.floor(Math.random() * LOVE_MESSAGES_ES.length)];
+
+    // Pick a love message that wasn't the last one shown.
+    let next = Math.floor(Math.random() * LOVE_MESSAGES_ES.length);
+    if (next === lastMsgIdx.current && LOVE_MESSAGES_ES.length > 1) {
+      next = (next + 1) % LOVE_MESSAGES_ES.length;
+    }
+    lastMsgIdx.current = next;
+    const msg = LOVE_MESSAGES_ES[next];
     setMessages(m => [...m, { id: id + 0.1, msg, x: cx, y: cy - 20, big: false }]);
-    if (newCount === 10 || newCount === 25 || newCount === 50 || newCount === 100) {
+
+    if (MILESTONES.has(newCount)) {
       setMilestone(newCount);
       setTimeout(() => setMilestone(null), 3000);
+    }
+    // Surprise event roughly every 15 taps (offset so it doesn't overlap milestones)
+    if (newCount > 0 && newCount % 15 === 7) {
+      const kinds = ['star', 'butterfly', 'burst'];
+      const kind = kinds[Math.floor(Math.random() * kinds.length)];
+      const sid = Math.random();
+      setSurprise({ id: sid, kind });
+      setTimeout(() => setSurprise(s => (s && s.id === sid ? null : s)), 2200);
     }
   };
 
@@ -237,10 +262,18 @@ function HeartGardenScene() {
   const removeMsg = (id) => setMessages(m => m.filter(x => x.id !== id));
   const removeFlower = (id) => setFlowers(f => f.filter(x => x.id !== id));
 
-  const milestoneText = milestone === 10 ? 'diez veces te amo'
+  const milestoneText =
+      milestone === 5 ? 'cinco besos en el aire'
+    : milestone === 10 ? 'diez veces te amo'
+    : milestone === 15 ? 'quince y contando'
     : milestone === 25 ? 'veinticinco corazones'
+    : milestone === 35 ? 'treinta y cinco abrazos'
     : milestone === 50 ? 'eres todo, mi vida'
+    : milestone === 75 ? 'setenta y cinco latidos'
     : milestone === 100 ? 'cien razones para amarte'
+    : milestone === 150 ? 'eres mi todo, ciento cincuenta veces'
+    : milestone === 200 ? 'doscientas razones, un solo corazón'
+    : milestone === 365 ? 'un año entero de amor'
     : '';
 
   return (
@@ -295,6 +328,39 @@ function HeartGardenScene() {
         WebkitTapHighlightColor: 'transparent',
       }}>
         {t.fireflies && fireflies.map(f => <Firefly key={f.id} {...f} />)}
+
+        {/* Surprise events — fire every ~15 taps for serendipity */}
+        {surprise && surprise.kind === 'star' && (
+          <div key={surprise.id} style={{
+            position: 'absolute', top: '12%', left: '-12%',
+            width: 90, height: 2,
+            background: 'linear-gradient(90deg, transparent, #FFE8B0 40%, #FFD1DC 70%, transparent)',
+            boxShadow: '0 0 12px #FFD1DC, 0 0 24px rgba(255,209,220,0.6)',
+            transform: 'rotate(-18deg)',
+            animation: 'shootingStar 1.5s ease-out forwards',
+            pointerEvents: 'none', borderRadius: 2,
+          }} />
+        )}
+        {surprise && surprise.kind === 'butterfly' && (
+          <div key={surprise.id} style={{
+            position: 'absolute', top: '40%', left: '-10%',
+            fontSize: 24, color: theme.heartCore,
+            textShadow: `0 0 8px ${theme.glow}`,
+            animation: 'butterflyDrift 2.2s ease-in-out forwards',
+            pointerEvents: 'none',
+          }}>✿</div>
+        )}
+        {surprise && surprise.kind === 'burst' && (
+          <div key={surprise.id} style={{
+            position: 'absolute', top: '50%', left: '50%',
+            width: 24, height: 24, transform: 'translate(-50%, -50%)',
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${theme.heartCore} 0%, ${theme.heartMid} 40%, transparent 80%)`,
+            boxShadow: `0 0 30px ${theme.glow}, 0 0 60px ${theme.glow}`,
+            animation: 'gardenBurst 2s ease-out forwards',
+            pointerEvents: 'none',
+          }} />
+        )}
 
         {/* Soft starlight halo — heart silhouette of twinkling dots */}
         {halo.map(h => (

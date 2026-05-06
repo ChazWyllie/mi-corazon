@@ -289,6 +289,7 @@ const MEMORIES = [
     title: 'La primera vez',
     text: 'que te vi sonreír, supe que mi vida no volvería a ser la misma. Bajo la luna, con linternas en el agua, te pregunté si querías ser mía.',
     tag: 'nuestro comienzo · 10·4·25',
+    dateISO: '2025-10-04',
   },
   {
     photo: 'photos/movies-bench.jpeg',
@@ -301,6 +302,7 @@ const MEMORIES = [
     title: 'Año nuevo',
     text: 'el primer beso del 2026 fue tuyo, y todos los demás también lo serán. Contigo, cada año se siente como un nuevo comienzo.',
     tag: 'noche vieja · 2026',
+    dateISO: '2025-12-31',
   },
   {
     photo: 'photos/03-trees.jpeg',
@@ -348,16 +350,60 @@ const MEMORIES = [
 
 function MemoriesScene() {
   const [idx, setIdx] = React.useState(0);
+  const [hearts, setHearts] = React.useState([]);
   const m = MEMORIES[idx];
+  const lastTap = React.useRef(0);
+  const startX = React.useRef(null);
+
+  // "hace X días" caption
+  const daysAgo = (() => {
+    if (!m.dateISO) return null;
+    const d = new Date(m.dateISO + 'T00:00:00');
+    const now = new Date();
+    const ms = now - d;
+    const n = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+    return n;
+  })();
+
+  // Double-tap heart-burst
+  const onPhotoTap = (e) => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const cx = (e.clientX ?? e.changedTouches?.[0]?.clientX ?? rect.left + rect.width / 2) - rect.left;
+      const cy = (e.clientY ?? e.changedTouches?.[0]?.clientY ?? rect.top + rect.height / 2) - rect.top;
+      const id = Math.random();
+      setHearts(h => [...h, { id, x: cx, y: cy }]);
+      setTimeout(() => setHearts(h => h.filter(x => x.id !== id)), 750);
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+  };
+
+  // Swipe to navigate
+  const onTouchStart = (e) => { startX.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (startX.current == null) return;
+    const dx = e.changedTouches[0].clientX - startX.current;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) setIdx((idx + 1) % MEMORIES.length);
+      else setIdx((idx - 1 + MEMORIES.length) % MEMORIES.length);
+    }
+    startX.current = null;
+  };
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '90px 24px 60px',
-      animation: 'sceneFadeIn 0.8s ease-out',
-    }}>
+    <div
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '90px 24px 60px',
+        animation: 'sceneFadeIn 0.8s ease-out',
+      }}>
       <div style={{
         fontFamily: "'Cormorant Garamond', serif",
         fontStyle: 'italic',
@@ -379,17 +425,27 @@ function MemoriesScene() {
         animation: 'memoryIn 0.6s ease-out',
         boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
       }}>
-        {/* photo frame */}
-        <div style={{
+        {/* photo frame — double-tap to heart, slow Ken-Burns zoom */}
+        <div onClick={onPhotoTap} style={{
           width: '100%', aspectRatio: '4/5',
-          background: m.photo ? `url(${m.photo}) center/cover no-repeat` : `linear-gradient(135deg, #2A0608 0%, #3A0810 100%)`,
           border: '1px solid rgba(232,201,160,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative',
           marginBottom: 14,
           boxShadow: 'inset 0 0 40px rgba(0,0,0,0.4)',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
         }}>
+          {/* Inner zooming layer (so the frame stays still) */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: m.photo ? `url(${m.photo}) center/cover no-repeat` : `linear-gradient(135deg, #2A0608 0%, #3A0810 100%)`,
+            animation: 'kenBurns 9s ease-in-out infinite alternate',
+          }} />
           {!m.photo && <div style={{
+            position: 'relative', zIndex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%',
             fontFamily: 'ui-monospace, Menlo, monospace',
             fontSize: 10, color: 'rgba(232,201,160,0.6)',
             letterSpacing: 2, textTransform: 'uppercase',
@@ -408,6 +464,17 @@ function MemoriesScene() {
               ...p,
               opacity: 0.7,
             }} />
+          ))}
+          {/* Double-tap hearts */}
+          {hearts.map(h => (
+            <div key={h.id} style={{
+              position: 'absolute', left: h.x, top: h.y,
+              transform: 'translate(-50%, -50%)',
+              fontSize: 64, color: '#FF6B85',
+              textShadow: '0 0 20px rgba(255,107,133,0.7), 0 4px 12px rgba(0,0,0,0.4)',
+              animation: 'heartTapBurst 750ms ease-out forwards',
+              pointerEvents: 'none',
+            }}>♥</div>
           ))}
         </div>
 
@@ -437,6 +504,17 @@ function MemoriesScene() {
           lineHeight: 1.5,
           margin: 0,
         }}>{m.text}</p>
+        {daysAgo !== null && (
+          <div style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 11,
+            color: 'rgba(232,201,160,0.6)',
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            marginTop: 10,
+          }}>· hace {daysAgo} {daysAgo === 1 ? 'día' : 'días'} ·</div>
+        )}
       </div>
 
       {/* Pagination */}

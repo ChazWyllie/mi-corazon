@@ -237,20 +237,28 @@ function CartasScene() {
     ...LETTERS.map(l => ({ kind: 'letter', data: l })),
     ...UPCOMING.map(u => ({ kind: 'upcoming', data: u })),
   ], []);
-  const [idx, setIdx] = React.useState(0); // start on first letter
-  const card = ALL_CARDS[idx];
+  const [idx, setIdx] = React.useState(0);
+  const trackRef = React.useRef(null);
+  const scrollTimer = React.useRef(null);
 
-  // touch swipe
-  const startX = React.useRef(null);
-  const onTouchStart = (e) => { startX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e) => {
-    if (startX.current == null) return;
-    const dx = e.changedTouches[0].clientX - startX.current;
-    if (Math.abs(dx) > 50) {
-      if (dx < 0 && idx < ALL_CARDS.length - 1) setIdx(idx + 1);
-      if (dx > 0 && idx > 0) setIdx(idx - 1);
-    }
-    startX.current = null;
+  // Snap-track scroll: read scrollLeft on idle, derive idx
+  const onScroll = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => {
+      const w = el.clientWidth;
+      if (w === 0) return;
+      const next = Math.round(el.scrollLeft / w);
+      if (next !== idx) setIdx(next);
+    }, 90);
+  };
+
+  const goTo = (i) => {
+    const next = Math.max(0, Math.min(ALL_CARDS.length - 1, i));
+    const el = trackRef.current;
+    if (!el) { setIdx(next); return; }
+    el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
   };
 
   return (
@@ -262,6 +270,8 @@ function CartasScene() {
       animation: 'sceneFadeIn 0.8s ease-out',
       overflow: 'hidden',
     }}>
+      <style>{`.cartas-track::-webkit-scrollbar{display:none}.cartas-card::-webkit-scrollbar{display:none}`}</style>
+
       <div style={{
         fontFamily: "'Cormorant Garamond', serif",
         fontStyle: 'italic',
@@ -273,50 +283,82 @@ function CartasScene() {
         marginBottom: 4,
       }}>· cartas para ti ·</div>
 
-      {/* Month chip grid removed — using arrow nav at the bottom for more letter room */}
-
-      {/* Card area — scrollable so long letters fit */}
+      {/* Horizontal snap-scroll track. Each card is a vertically-scrollable column. */}
       <div
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        ref={trackRef}
+        onScroll={onScroll}
+        className="cartas-track"
         style={{
           flex: 1, width: '100%', maxWidth: 380,
-          overflowY: 'auto',
+          display: 'flex', flexDirection: 'row',
+          overflowX: 'auto', overflowY: 'hidden',
+          scrollSnapType: 'x mandatory',
+          scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
-          paddingBottom: 8,
         }}>
-        <style>{`.card-scroll::-webkit-scrollbar{display:none}`}</style>
-        <div key={idx}>
-          {card.kind === 'letter'
-            ? <LetterCard letter={card.data} />
-            : <UpcomingCard item={card.data} />
-          }
-        </div>
+        {ALL_CARDS.map((c, i) => (
+          <div
+            key={i}
+            className="cartas-card"
+            style={{
+              minWidth: '100%', width: '100%',
+              scrollSnapAlign: 'center',
+              scrollSnapStop: 'always',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              paddingBottom: 8,
+            }}>
+            {c.kind === 'letter'
+              ? <LetterCard letter={c.data} />
+              : <UpcomingCard item={c.data} />
+            }
+          </div>
+        ))}
       </div>
 
-      {/* Pagination footer */}
+      {/* Pagination footer + progress bar */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 12, marginTop: 8,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 6, marginTop: 8, width: '100%', maxWidth: 380,
       }}>
-        <button onClick={() => setIdx(Math.max(0, idx - 1))}
-          disabled={idx === 0}
-          style={{ ...cartasBtn, opacity: idx === 0 ? 0.3 : 1 }}>‹</button>
         <div style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontStyle: 'italic',
-          fontSize: 12,
-          color: '#E8C9A0',
-          letterSpacing: 2,
-          opacity: 0.8,
-          minWidth: 60, textAlign: 'center',
+          width: '70%', height: 1.5,
+          background: 'rgba(232,201,160,0.14)',
+          borderRadius: 1,
+          overflow: 'hidden',
         }}>
-          {idx + 1} / {ALL_CARDS.length}
+          <div style={{
+            width: `${((idx + 1) / ALL_CARDS.length) * 100}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, rgba(232,201,160,0.3), #E8C9A0)',
+            transition: 'width 0.35s ease-out',
+            borderRadius: 1,
+          }} />
         </div>
-        <button onClick={() => setIdx(Math.min(ALL_CARDS.length - 1, idx + 1))}
-          disabled={idx === ALL_CARDS.length - 1}
-          style={{ ...cartasBtn, opacity: idx === ALL_CARDS.length - 1 ? 0.3 : 1 }}>›</button>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 12,
+        }}>
+          <button onClick={() => goTo(idx - 1)}
+            disabled={idx === 0}
+            style={{ ...cartasBtn, opacity: idx === 0 ? 0.3 : 1 }}>‹</button>
+          <div style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 12,
+            color: '#E8C9A0',
+            letterSpacing: 2,
+            opacity: 0.8,
+            minWidth: 60, textAlign: 'center',
+          }}>
+            {idx + 1} / {ALL_CARDS.length}
+          </div>
+          <button onClick={() => goTo(idx + 1)}
+            disabled={idx === ALL_CARDS.length - 1}
+            style={{ ...cartasBtn, opacity: idx === ALL_CARDS.length - 1 ? 0.3 : 1 }}>›</button>
+        </div>
       </div>
     </div>
   );
